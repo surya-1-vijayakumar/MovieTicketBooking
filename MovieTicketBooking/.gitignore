@@ -1,8 +1,15 @@
-﻿@"
+﻿# Visual Studio
 .vs/
-**/bin/
-**/obj/
 *.user
 *.suo
+
+# Build output
+**/bin/
+**/obj/
+
+# Temporary files
+*.tmp
+*.bak
+
+# Local configuration and secrets
 appsettings.Development.json
-"@ | Set-Content .gitignore
