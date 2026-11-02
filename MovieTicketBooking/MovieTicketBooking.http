@@ -1,0 +1,189 @@
+@baseUrl = http://localhost:5000
+
+### 1. MOVIES API (Phase 5)
+
+# 1.1 Create Movie
+# @name createMovie
+POST {{baseUrl}}/api/movies
+Content-Type: application/json
+
+{
+  "title": "Inception",
+  "description": "A thief who steals corporate secrets through the use of dream-sharing technology.",
+  "genre": "Sci-Fi",
+  "language": "English",
+  "durationMinutes": 148,
+  "releaseDate": "2010-07-16T00:00:00Z",
+  "rating": 8.8,
+  "posterUrl": "https://example.com/posters/inception.jpg"
+}
+
+### 1.2 Get All Movies (Paged)
+GET {{baseUrl}}/api/movies?page=1&pageSize=10
+Accept: application/json
+
+### 1.3 Get Movie By ID
+GET {{baseUrl}}/api/movies/1
+Accept: application/json
+
+### 1.4 Search Movies By Title
+GET {{baseUrl}}/api/movies/search?title=Inception
+Accept: application/json
+
+### 1.5 Update Movie
+PUT {{baseUrl}}/api/movies/1
+Content-Type: application/json
+
+{
+  "title": "Inception (Special Edition)",
+  "description": "A thief who steals corporate secrets through the use of dream-sharing technology.",
+  "genre": "Sci-Fi / Thriller",
+  "language": "English",
+  "durationMinutes": 148,
+  "releaseDate": "2010-07-16T00:00:00Z",
+  "rating": 9.0,
+  "posterUrl": "https://example.com/posters/inception-special.jpg",
+  "isActive": true
+}
+
+### 2. THEATRES API (Phase 6)
+
+# 2.1 Create Theatre
+# @name createTheatre
+POST {{baseUrl}}/api/theatres
+Content-Type: application/json
+
+{
+  "name": "PVR Cinemas IMAX",
+  "address": "Phoenix Marketcity, Velachery",
+  "city": "Chennai",
+  "state": "Tamil Nadu",
+  "phone": "+91-9876543210",
+  "email": "chennai@pvrcinemas.com"
+}
+
+### 2.2 Get All Theatres
+GET {{baseUrl}}/api/theatres
+Accept: application/json
+
+### 2.3 Get Theatre By ID
+GET {{baseUrl}}/api/theatres/1
+Accept: application/json
+
+### 3. SCREENS API (Phase 6)
+
+# 3.1 Create Screen
+# @name createScreen
+POST {{baseUrl}}/api/screens
+Content-Type: application/json
+
+{
+  "theatreId": 1,
+  "screenName": "Screen 1 (IMAX)",
+  "totalSeats": 60,
+  "screenType": "IMAX"
+}
+
+### 3.2 Get Screens by Theatre
+GET {{baseUrl}}/api/screens/theatre/1
+Accept: application/json
+
+### 3.3 Get Screen By ID
+GET {{baseUrl}}/api/screens/1
+Accept: application/json
+
+### 4. SEATS API (Phase 6)
+
+# 4.1 Bulk Create Seats for Screen 1
+POST {{baseUrl}}/api/seats/bulk
+Content-Type: application/json
+
+{
+  "screenId": 1,
+  "seats": [
+    { "rowLetter": "A", "columnNumber": 1, "seatType": "Regular", "price": 180.00 },
+    { "rowLetter": "A", "columnNumber": 2, "seatType": "Regular", "price": 180.00 },
+    { "rowLetter": "A", "columnNumber": 3, "seatType": "Regular", "price": 180.00 },
+    { "rowLetter": "B", "columnNumber": 1, "seatType": "VIP", "price": 250.00 },
+    { "rowLetter": "B", "columnNumber": 2, "seatType": "VIP", "price": 250.00 },
+    { "rowLetter": "B", "columnNumber": 3, "seatType": "VIP", "price": 250.00 }
+  ]
+}
+
+### 4.2 Get Seats by Screen
+GET {{baseUrl}}/api/seats/screen/1
+Accept: application/json
+
+### 5. SHOWS API (Phase 7 - Schedules & Auto-generates ShowSeats)
+
+# 5.1 Create Show (Automatically generates 6 ShowSeat records as 'Available')
+# @name createShow
+POST {{baseUrl}}/api/shows
+Content-Type: application/json
+
+{
+  "movieId": 1,
+  "screenId": 1,
+  "showDate": "2026-12-01T00:00:00Z",
+  "startTime": "18:30:00",
+  "basePrice": 200.00
+}
+
+### 5.2 Get All Shows
+GET {{baseUrl}}/api/shows
+Accept: application/json
+
+### 5.3 Get Show By ID (shows available vs total seats)
+GET {{baseUrl}}/api/shows/1
+Accept: application/json
+
+### 5.4 Get Shows by Movie
+GET {{baseUrl}}/api/shows/movie/1
+Accept: application/json
+
+### 5.5 Overlap Detection Test (Should fail with 400 Bad Request)
+POST {{baseUrl}}/api/shows
+Content-Type: application/json
+
+{
+  "movieId": 1,
+  "screenId": 1,
+  "showDate": "2026-12-01T00:00:00Z",
+  "startTime": "19:00:00",
+  "basePrice": 200.00
+}
+
+### 6. BOOKINGS API (Phase 8 - Transactional Booking & Cancellation)
+
+# 6.1 Create Booking for Seats 1 and 2 (ShowSeats updated to 'Booked')
+# @name createBooking
+POST {{baseUrl}}/api/bookings
+Content-Type: application/json
+
+{
+  "showId": 1,
+  "seatIds": [1, 2],
+  "customerName": "John Doe",
+  "customerEmail": "john.doe@example.com",
+  "customerPhone": "+91-9988776655"
+}
+
+### 6.2 Get Booking By ID
+GET {{baseUrl}}/api/bookings/1
+Accept: application/json
+
+### 6.3 Prevent Double-Booking Test (Should fail with 400 Bad Request because seats 1 and 2 are already Booked)
+POST {{baseUrl}}/api/bookings
+Content-Type: application/json
+
+{
+  "showId": 1,
+  "seatIds": [1, 2],
+  "customerName": "Jane Smith",
+  "customerEmail": "jane.smith@example.com",
+  "customerPhone": "+91-9988771122"
+}
+
+### 6.4 Cancel Booking (ShowSeats restored to 'Available', status changed to 'Cancelled')
+POST {{baseUrl}}/api/bookings/1/cancel
+Accept: application/json
