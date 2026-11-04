@@ -1,0 +1,357 @@
+<header class="site-header">
+  <nav class="navbar container py-3" aria-label="Main navigation">
+    <a class="brand-mark" href="#" (click)="$event.preventDefault(); clearSearch()">
+      <span class="brand-icon" aria-hidden="true">C</span>
+      <span>cine<span class="brand-accent">vibe</span></span>
+    </a>
+    <div class="d-flex align-items-center gap-2 gap-sm-3">
+      <button class="btn btn-link nav-link-button d-none d-sm-inline-flex" type="button" (click)="openLookup()">
+        My bookings
+      </button>
+      <ng-container *ngIf="session; else signedOut">
+        <span class="welcome-name d-none d-md-inline">Hi, {{ session.fullName.split(' ')[0] }}</span>
+        <button class="btn btn-outline-light btn-sm rounded-pill px-3" type="button" (click)="logout()">
+          Sign out
+        </button>
+      </ng-container>
+      <ng-template #signedOut>
+        <button class="btn btn-link nav-link-button" type="button" (click)="openAuth('login')">Log in</button>
+        <button class="btn btn-light btn-sm rounded-pill px-3 fw-semibold" type="button" (click)="openAuth('register')">
+          Sign up
+        </button>
+      </ng-template>
+    </div>
+  </nav>
+</header>
+
+<main>
+  <section class="hero-section">
+    <div class="container hero-content">
+      <div class="hero-copy">
+        <span class="eyebrow"><span class="eyebrow-dot"></span> YOUR NEXT NIGHT OUT</span>
+        <h1>Good stories.<br /><span>Great company.</span></h1>
+        <p>Find your film, pick your seats, and let the big-screen magic begin.</p>
+        <a class="btn btn-coral rounded-pill px-4 py-3" href="#now-showing">
+          Explore movies <span class="arrow" aria-hidden="true">→</span>
+        </a>
+      </div>
+      <div class="hero-art" aria-hidden="true">
+        <div class="hero-orbit orbit-one"></div>
+        <div class="hero-orbit orbit-two"></div>
+        <div class="hero-ticket">
+          <span class="ticket-kicker">TONIGHT, ANYTHING IS POSSIBLE</span>
+          <span class="ticket-title">Make it<br />a movie<br /><em>night.</em></span>
+          <span class="ticket-stub">ADMIT ONE <span>✦</span></span>
+        </div>
+        <span class="hero-spark spark-one">✦</span>
+        <span class="hero-spark spark-two">✳</span>
+      </div>
+      <div class="hero-footnote"><span>01</span> THE BEST SEAT IN THE HOUSE IS YOURS</div>
+    </div>
+  </section>
+
+  <section class="container content-section" id="now-showing">
+    <div class="section-heading">
+      <div>
+        <span class="eyebrow eyebrow-dark">THE BIG SCREEN, RIGHT NOW</span>
+        <h2>Now showing<span class="heading-period">.</span></h2>
+        <p class="section-subtitle">A little something for every kind of movie night.</p>
+      </div>
+      <form class="search-form" (ngSubmit)="searchMovies()" role="search">
+        <label class="visually-hidden" for="movie-search">Search movies</label>
+        <span class="search-icon" aria-hidden="true">⌕</span>
+        <input
+          id="movie-search"
+          class="form-control"
+          type="search"
+          name="searchTerm"
+          [(ngModel)]="searchTerm"
+          placeholder="Search movies"
+        />
+        <button class="btn btn-dark rounded-pill" type="submit">Search</button>
+        <button *ngIf="isSearching" class="clear-search" type="button" aria-label="Clear search" (click)="clearSearch()">×</button>
+      </form>
+    </div>
+
+    <div *ngIf="moviesError" class="alert alert-danger api-alert" role="alert">
+      {{ moviesError }}
+      <button class="btn btn-sm btn-outline-danger ms-2" type="button" (click)="loadMovies(page)">Try again</button>
+    </div>
+    <div *ngIf="featuredError" class="alert alert-warning api-alert" role="status">{{ featuredError }}</div>
+
+    <div *ngIf="isLoadingMovies" class="loading-state" aria-live="polite">
+      <span class="spinner-border spinner-border-sm text-danger" aria-hidden="true"></span>
+      <span>Finding your next favorite…</span>
+    </div>
+
+    <div *ngIf="!isLoadingMovies && !movies.length && !moviesError" class="empty-state">
+      <span class="empty-star" aria-hidden="true">✦</span>
+      <h3>No movies found</h3>
+      <p>Try a different title, or check back soon for something new.</p>
+      <button *ngIf="isSearching" class="btn btn-outline-dark rounded-pill px-4" type="button" (click)="clearSearch()">
+        Show all movies
+      </button>
+    </div>
+
+    <div class="movie-grid" *ngIf="!isLoadingMovies && movies.length">
+      <article class="movie-card" *ngFor="let movie of movies; let i = index">
+        <div class="poster-wrap">
+          <div class="poster-art" [ngClass]="posterClass(i)">
+            <span class="poster-glow"></span>
+            <span class="poster-genre">{{ movie.genre || 'NOW SHOWING' }}</span>
+            <h3 class="poster-title">{{ movie.title }}</h3>
+            <span class="poster-mark" aria-hidden="true">C<span>V</span></span>
+          </div>
+          <span class="rating-chip"><span aria-hidden="true">★</span> {{ movie.rating | number:'1.1-1' }}</span>
+        </div>
+        <div class="movie-info">
+          <div class="movie-title-row">
+            <h3>{{ movie.title }}</h3>
+            <span class="movie-language">{{ movie.language }}</span>
+          </div>
+          <p>{{ movie.genre }} <span class="meta-dot">·</span> {{ movie.durationMinutes }} min</p>
+          <button class="book-link" type="button" (click)="openBooking(movie)">
+            Book tickets <span aria-hidden="true">→</span>
+          </button>
+        </div>
+      </article>
+    </div>
+
+    <div class="pagination-row" *ngIf="!isSearching && totalPages > 1">
+      <span>Showing {{ movies.length }} of {{ totalMovies }} movies</span>
+      <div class="d-flex align-items-center gap-2">
+        <button class="page-button" type="button" [disabled]="page <= 1 || isLoadingMovies" (click)="loadMovies(page - 1)" aria-label="Previous page">←</button>
+        <span class="page-count">{{ page }} <span>/</span> {{ totalPages }}</span>
+        <button class="page-button" type="button" [disabled]="page >= totalPages || isLoadingMovies" (click)="loadMovies(page + 1)" aria-label="Next page">→</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="featured-strip" *ngIf="featuredMovie">
+    <div class="container featured-content">
+      <div class="featured-copy">
+        <span class="eyebrow"><span class="eyebrow-dot"></span> PICK OF THE MOMENT</span>
+        <h2>{{ featuredMovie.title }}</h2>
+        <p>{{ featuredMovie.description || 'The lights are dimming. Your next big-screen story is waiting.' }}</p>
+        <div class="featured-meta">
+          <span>{{ featuredMovie.genre }}</span>
+          <span>{{ featuredMovie.language }}</span>
+          <span>{{ featuredMovie.durationMinutes }} min</span>
+        </div>
+        <button class="btn btn-coral rounded-pill px-4 py-3 mt-4" type="button" (click)="openBooking(featuredMovie!)">
+          Book this movie <span class="arrow" aria-hidden="true">→</span>
+        </button>
+      </div>
+      <div class="featured-art">
+        <img *ngIf="featuredMovie.posterUrl" [src]="featuredMovie.posterUrl" [alt]="featuredMovie.title + ' poster'" />
+        <div *ngIf="!featuredMovie.posterUrl" class="featured-placeholder">
+          <span class="placeholder-ring"></span>
+          <span class="placeholder-title">{{ featuredMovie.title }}</span>
+          <span class="placeholder-caption">A CINEVIBE FEATURE</span>
+        </div>
+        <span class="featured-badge">NOW<br />SHOWING</span>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="container footer-content">
+    <a class="brand-mark footer-brand" href="#" (click)="$event.preventDefault(); clearSearch()">
+      <span class="brand-icon" aria-hidden="true">C</span>
+      <span>cine<span class="brand-accent">vibe</span></span>
+    </a>
+    <span>Make room for a little movie magic.</span>
+    <button class="footer-bookings" type="button" (click)="openLookup()">Find a booking</button>
+  </div>
+</footer>
+
+<div *ngIf="bookingOpen" class="modal-backdrop-custom" role="presentation" (click)="closeBooking()">
+  <section class="app-modal booking-modal" role="dialog" aria-modal="true" aria-labelledby="booking-title" (click)="$event.stopPropagation()">
+    <button class="modal-close" type="button" aria-label="Close" (click)="closeBooking()">×</button>
+    <ng-container *ngIf="bookingResult as confirmed; else bookingSteps">
+      <div class="confirmation-mark" aria-hidden="true">✓</div>
+      <span class="eyebrow eyebrow-dark">YOU’RE ALL SET</span>
+      <h2 id="booking-title">It’s movie time.</h2>
+      <p class="modal-intro">Your booking is confirmed. Save this reference to find your tickets later.</p>
+      <div class="ticket-card">
+        <div class="ticket-heading">
+          <div><span class="ticket-kicker-dark">BOOKING REFERENCE</span><strong>#{{ confirmed.bookingId }}</strong></div>
+          <span class="status-pill">{{ confirmed.bookingStatus }}</span>
+        </div>
+        <div class="ticket-divider"></div>
+        <h3>{{ confirmed.movieTitle }}</h3>
+        <p>{{ confirmed.theatreName }} <span class="meta-dot">·</span> {{ confirmed.screenName }}</p>
+        <div class="ticket-details">
+          <span><small>DATE & TIME</small>{{ confirmed.showDate | date:'EEE, d MMM' }} · {{ timeLabel(confirmed.startTime) }}</span>
+          <span><small>SEATS</small>{{ bookingSeatList(confirmed) }}</span>
+          <span><small>TOTAL</small>{{ confirmed.totalAmount | currency:'INR':'symbol':'1.0-0':'en-IN' }}</span>
+        </div>
+      </div>
+      <button class="btn btn-dark w-100 rounded-pill py-3 mt-4" type="button" (click)="closeBooking()">Done</button>
+    </ng-container>
+
+    <ng-template #bookingSteps>
+      <span class="eyebrow eyebrow-dark">YOUR MOVIE NIGHT</span>
+      <h2 id="booking-title">{{ selectedMovie?.title }}</h2>
+      <p class="modal-intro">Choose a showtime, find your seats, and you’re there.</p>
+
+      <div *ngIf="bookingError" class="alert alert-danger py-2" role="alert">{{ bookingError }}</div>
+      <div *ngIf="showsLoading" class="modal-loading"><span class="spinner-border spinner-border-sm text-danger"></span> Finding showtimes…</div>
+      <div *ngIf="!showsLoading && !shows.length" class="modal-empty">
+        No upcoming showtimes are available for this movie right now.
+      </div>
+
+      <div *ngIf="shows.length" class="showtime-list">
+        <article class="showtime-card" *ngFor="let show of shows">
+          <div class="showtime-info">
+            <strong>{{ show.showDate | date:'EEE, d MMM' }}</strong>
+            <span>{{ show.theatreName }} <span class="meta-dot">·</span> {{ show.screenName }}</span>
+            <small>{{ show.availableSeats }} seats left</small>
+          </div>
+          <button
+            class="showtime-button"
+            [class.showtime-selected]="selectedShow?.showId === show.showId"
+            [disabled]="show.availableSeats < 1"
+            type="button"
+            (click)="chooseShow(show)"
+          >
+            {{ timeLabel(show.startTime) }}
+            <small>{{ show.basePrice | currency:'INR':'symbol':'1.0-0':'en-IN' }}+</small>
+          </button>
+        </article>
+      </div>
+
+      <div *ngIf="selectedShow" class="seat-selection">
+        <div class="seat-heading">
+          <div><span class="eyebrow eyebrow-dark">PICK YOUR SPOT</span><h3>{{ selectedShow.theatreName }}</h3></div>
+          <span class="screen-label">{{ selectedShow.screenName }}</span>
+        </div>
+        <div *ngIf="seatsLoading" class="modal-loading"><span class="spinner-border spinner-border-sm text-danger"></span> Loading seats…</div>
+        <ng-container *ngIf="!seatsLoading && seats.length">
+          <div class="screen-curve"><span>SCREEN</span></div>
+          <div class="seat-map" aria-label="Choose your seats">
+            <div class="seat-row" *ngFor="let row of seatRows">
+              <span class="row-label">{{ row[0].rowLetter }}</span>
+              <button
+                *ngFor="let seat of row"
+                class="seat"
+                [class.seat-selected]="isSeatSelected(seat)"
+                [attr.aria-label]="'Seat ' + seat.seatNumber + ', ' + (isSeatSelected(seat) ? 'selected' : 'available')"
+                [attr.aria-pressed]="isSeatSelected(seat)"
+                type="button"
+                (click)="toggleSeat(seat)"
+              >{{ seat.columnNumber }}</button>
+              <span class="row-label">{{ row[0].rowLetter }}</span>
+            </div>
+          </div>
+          <div class="seat-legend">
+            <span><i class="legend-seat"></i> Available</span>
+            <span><i class="legend-seat selected"></i> Selected</span>
+          </div>
+          <p class="seat-note">Seat availability is confirmed by the API when you book.</p>
+        </ng-container>
+        <div *ngIf="!seatsLoading && !seats.length" class="modal-empty">No active seats are configured for this screen.</div>
+      </div>
+
+      <form *ngIf="selectedShow && seats.length" class="booking-form" (ngSubmit)="submitBooking()" #bookingForm="ngForm">
+        <div class="form-section-heading">
+          <span class="eyebrow eyebrow-dark">TICKET HOLDER</span>
+          <span *ngIf="session" class="signed-in-note">Signed in as {{ session.fullName }}</span>
+        </div>
+        <div class="row g-2">
+          <div class="col-12">
+            <label class="form-label" for="customer-name">Full name</label>
+            <input id="customer-name" class="form-control" type="text" name="customerName" [(ngModel)]="customerName" maxlength="200" required />
+          </div>
+          <div class="col-md-7">
+            <label class="form-label" for="customer-email">Email address</label>
+            <input id="customer-email" class="form-control" type="email" name="customerEmail" [(ngModel)]="customerEmail" maxlength="200" required email />
+          </div>
+          <div class="col-md-5">
+            <label class="form-label" for="customer-phone">Phone <span class="optional">(optional)</span></label>
+            <input id="customer-phone" class="form-control" type="tel" name="customerPhone" [(ngModel)]="customerPhone" maxlength="20" />
+          </div>
+        </div>
+        <div class="booking-total">
+          <span>{{ selectedSeats.length }} {{ selectedSeats.length === 1 ? 'seat' : 'seats' }} selected</span>
+          <strong>{{ estimatedTotal | currency:'INR':'symbol':'1.0-0':'en-IN' }}</strong>
+        </div>
+        <button class="btn btn-coral w-100 rounded-pill py-3" type="submit" [disabled]="bookingLoading || !selectedSeats.length || bookingForm.invalid">
+          <span *ngIf="bookingLoading" class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+          {{ bookingLoading ? 'Confirming your seats…' : 'Confirm booking' }}
+        </button>
+      </form>
+    </ng-template>
+  </section>
+</div>
+
+<div *ngIf="authMode" class="modal-backdrop-custom" role="presentation" (click)="closeAuth()">
+  <section class="app-modal auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-title" (click)="$event.stopPropagation()">
+    <button class="modal-close" type="button" aria-label="Close" (click)="closeAuth()">×</button>
+    <span class="eyebrow eyebrow-dark">{{ authMode === 'login' ? 'WELCOME BACK' : 'YOUR FRONT-ROW SEAT' }}</span>
+    <h2 id="auth-title">{{ authMode === 'login' ? 'Good to see you.' : 'Join the club.' }}</h2>
+    <p class="modal-intro">{{ authMode === 'login' ? 'Log in to make your next booking even easier.' : 'Create an account for a smoother movie night.' }}</p>
+    <div *ngIf="authError" class="alert alert-danger py-2" role="alert">{{ authError }}</div>
+    <form (ngSubmit)="submitAuth()" #authForm="ngForm">
+      <div *ngIf="authMode === 'register'" class="mb-3">
+        <label class="form-label" for="auth-name">Full name</label>
+        <input id="auth-name" class="form-control" type="text" name="authName" [(ngModel)]="authName" required minlength="3" maxlength="150" />
+      </div>
+      <div class="mb-3">
+        <label class="form-label" for="auth-email">Email address</label>
+        <input id="auth-email" class="form-control" type="email" name="authEmail" [(ngModel)]="authEmail" required email maxlength="200" />
+      </div>
+      <div class="mb-4">
+        <label class="form-label" for="auth-password">Password</label>
+        <input id="auth-password" class="form-control" type="password" name="authPassword" [(ngModel)]="authPassword" required [minlength]="authMode === 'register' ? 8 : 1" />
+        <small *ngIf="authMode === 'register'" class="input-hint">Use at least 8 characters.</small>
+      </div>
+      <button class="btn btn-coral w-100 rounded-pill py-3" type="submit" [disabled]="authLoading || authForm.invalid">
+        <span *ngIf="authLoading" class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+        {{ authLoading ? 'One moment…' : (authMode === 'login' ? 'Log in' : 'Create account') }}
+      </button>
+    </form>
+    <p class="auth-switch">
+      {{ authMode === 'login' ? 'New around here?' : 'Already have an account?' }}
+      <button type="button" (click)="openAuth(authMode === 'login' ? 'register' : 'login')">
+        {{ authMode === 'login' ? 'Sign up' : 'Log in' }}
+      </button>
+    </p>
+  </section>
+</div>
+
+<div *ngIf="lookupOpen" class="modal-backdrop-custom" role="presentation" (click)="closeLookup()">
+  <section class="app-modal lookup-modal" role="dialog" aria-modal="true" aria-labelledby="lookup-title" (click)="$event.stopPropagation()">
+    <button class="modal-close" type="button" aria-label="Close" (click)="closeLookup()">×</button>
+    <span class="eyebrow eyebrow-dark">YOUR TICKETS, ANYTIME</span>
+    <h2 id="lookup-title">Find a booking.</h2>
+    <p class="modal-intro">Enter the booking reference from your confirmation to see your ticket details.</p>
+    <form class="lookup-form" (ngSubmit)="findBooking()">
+      <label class="form-label" for="booking-reference">Booking reference</label>
+      <div class="input-group">
+        <span class="input-group-text">#</span>
+        <input id="booking-reference" class="form-control" type="number" min="1" name="lookupId" [(ngModel)]="lookupId" required />
+        <button class="btn btn-dark" type="submit" [disabled]="lookupLoading || !lookupId">
+          {{ lookupLoading ? 'Looking…' : 'Find ticket' }}
+        </button>
+      </div>
+    </form>
+    <div *ngIf="lookupError" class="alert alert-danger py-2 mt-3" role="alert">{{ lookupError }}</div>
+    <div *ngIf="lookupResult as ticket" class="ticket-card lookup-ticket">
+      <div class="ticket-heading">
+        <div><span class="ticket-kicker-dark">BOOKING REFERENCE</span><strong>#{{ ticket.bookingId }}</strong></div>
+        <span class="status-pill">{{ ticket.bookingStatus }}</span>
+      </div>
+      <div class="ticket-divider"></div>
+      <h3>{{ ticket.movieTitle }}</h3>
+      <p>{{ ticket.theatreName }} <span class="meta-dot">·</span> {{ ticket.screenName }}</p>
+      <div class="ticket-details">
+        <span><small>DATE & TIME</small>{{ ticket.showDate | date:'EEE, d MMM' }} · {{ timeLabel(ticket.startTime) }}</span>
+        <span><small>SEATS</small>{{ bookingSeatList(ticket) }}</span>
+        <span><small>TOTAL</small>{{ ticket.totalAmount | currency:'INR':'symbol':'1.0-0':'en-IN' }}</span>
+      </div>
+    </div>
+    <p class="lookup-footnote">Bookings are retrieved by reference number. Keep yours handy after checkout.</p>
+  </section>
+</div>
